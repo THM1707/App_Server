@@ -1,4 +1,4 @@
-package com.thm.app_server.payload;
+package com.thm.app_server.payload.response;
 
 public class JwtAuthenticationResponse {
     private String accessToken;

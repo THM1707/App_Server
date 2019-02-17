@@ -1,4 +1,4 @@
-package com.thm.app_server.payload;
+package com.thm.app_server.payload.request;
 
 import javax.validation.constraints.*;
 

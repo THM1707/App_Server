@@ -4,10 +4,10 @@ import com.thm.app_server.exception.AppException;
 import com.thm.app_server.model.Role;
 import com.thm.app_server.model.RoleName;
 import com.thm.app_server.model.User;
-import com.thm.app_server.payload.ApiResponse;
-import com.thm.app_server.payload.JwtAuthenticationResponse;
-import com.thm.app_server.payload.ManagerSignUpRequest;
-import com.thm.app_server.payload.SignUpRequest;
+import com.thm.app_server.payload.response.ApiResponse;
+import com.thm.app_server.payload.response.JwtAuthenticationResponse;
+import com.thm.app_server.payload.request.ManagerSignUpRequest;
+import com.thm.app_server.payload.request.SignUpRequest;
 import com.thm.app_server.repository.RoleRepository;
 import com.thm.app_server.repository.UserRepository;
 import com.thm.app_server.security.JwtTokenProvider;
@@ -26,6 +26,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import javax.validation.Valid;
 import java.net.URI;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -115,10 +117,18 @@ public class AuthController {
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        Role userRole = roleRepository.findByName(RoleName.ROLE_MANAGER)
+        Role managerRole = roleRepository.findByName(RoleName.ROLE_MANAGER)
                 .orElseThrow(() -> new AppException("Manager Role not set."));
 
-        user.setRoles(Collections.singleton(userRole));
+        Role userRole = roleRepository.findByName(RoleName.ROLE_USER)
+                .orElseThrow(() -> new AppException("User Role not set"));
+
+        Set<Role> roles = new HashSet<>();
+
+        roles.add(managerRole);
+        roles.add(userRole);
+
+        user.setRoles(roles);
 
         User result = userRepository.save(user);
 

@@ -8,4 +8,8 @@ public class ParkingLotIdsRequest {
     public List<Long> getIdList() {
         return idList;
     }
+
+    public void setIdList(List<Long> idList) {
+        this.idList = idList;
+    }
 }

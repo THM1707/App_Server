@@ -33,7 +33,7 @@ public class ParkingLotController {
         return ResponseEntity.ok(new BasicResourceResponse("success", p));
     }
 
-    @GetMapping("/in")
+    @PostMapping("/in")
     public ResponseEntity<?> in(@RequestBody ParkingLotIdsRequest request) {
         List<ParkingLot> result = parkingLotRepository.findByIdIn(request.getIdList());
         return ResponseEntity.ok(new BasicResourceResponse("success", result));

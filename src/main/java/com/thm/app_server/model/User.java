@@ -51,6 +51,12 @@ public class User extends DateAudit {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "user_favorite",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "parking_lot_id"))
+    private Set<ParkingLot> favorites = new HashSet<>();
+
     public User(String name, String username, String email, String password) {
         this.name = name;
         this.username = username;

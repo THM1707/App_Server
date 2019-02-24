@@ -1,13 +1,18 @@
 package com.thm.app_server.payload.response;
 
+import java.util.List;
+
 public class JwtAuthenticationResponse {
     private String accessToken;
 
     private String role;
 
-    public JwtAuthenticationResponse(String accessToken, String role) {
+    private List<Long> favorites;
+
+    public JwtAuthenticationResponse(String accessToken, String role, List<Long> favorites) {
         this.accessToken = accessToken;
         this.role = role;
+        this.favorites = favorites;
     }
 
     public String getAccessToken() {
@@ -24,5 +29,13 @@ public class JwtAuthenticationResponse {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public List<Long> getFavorites() {
+        return favorites;
+    }
+
+    public void setFavorites(List<Long> favorites) {
+        this.favorites = favorites;
     }
 }

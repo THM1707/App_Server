@@ -1,16 +1,19 @@
 package com.thm.app_server.controller;
 
 import com.thm.app_server.exception.AppException;
+import com.thm.app_server.model.ParkingLot;
 import com.thm.app_server.model.Role;
 import com.thm.app_server.model.RoleName;
 import com.thm.app_server.model.User;
 import com.thm.app_server.payload.response.ApiResponse;
+import com.thm.app_server.payload.response.BasicResourceResponse;
 import com.thm.app_server.payload.response.JwtAuthenticationResponse;
 import com.thm.app_server.payload.request.ManagerSignUpRequest;
 import com.thm.app_server.payload.request.SignUpRequest;
 import com.thm.app_server.repository.RoleRepository;
 import com.thm.app_server.repository.UserRepository;
 import com.thm.app_server.security.JwtTokenProvider;
+import com.thm.app_server.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,9 +28,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.validation.Valid;
 import java.net.URI;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.security.Principal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -62,15 +65,25 @@ public class AuthController {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String jwt = tokenProvider.generateToken(authentication);
+        List<Long> favorite = new ArrayList<>();
 
-        if (authentication.isAuthenticated()) {
-            if (authentication.getAuthorities().stream().anyMatch(r -> r.getAuthority().equals("ROLE_MANAGER"))) {
-                return ResponseEntity.ok(new JwtAuthenticationResponse(jwt, "manager"));
+        String jwt = tokenProvider.generateToken(authentication);
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserPrincipal) {
+            Long userId = ((UserPrincipal) principal).getId();
+            User u = userRepository.findById(userId).orElse(null);
+            if (u != null) {
+                favorite = u.getFavorites().stream().map(ParkingLot::getId).collect(Collectors.toList());
             }
         }
 
-        return ResponseEntity.ok(new JwtAuthenticationResponse(jwt, "user"));
+        if (authentication.isAuthenticated()) {
+            if (authentication.getAuthorities().stream().anyMatch(r -> r.getAuthority().equals("ROLE_MANAGER"))) {
+                return ResponseEntity.ok(new JwtAuthenticationResponse(jwt, "manager", favorite));
+            }
+        }
+
+        return ResponseEntity.ok(new JwtAuthenticationResponse(jwt, "user", favorite));
     }
 
     @PostMapping("/signup")

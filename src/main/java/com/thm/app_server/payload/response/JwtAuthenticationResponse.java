@@ -1,41 +1,29 @@
 package com.thm.app_server.payload.response;
 
+import com.thm.app_server.model.ParkingLot;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.List;
 
+@Getter
+@Setter
 public class JwtAuthenticationResponse {
     private String accessToken;
 
     private String role;
 
+    private String username;
+
+    private String email;
+
     private List<Long> favorites;
 
-    public JwtAuthenticationResponse(String accessToken, String role, List<Long> favorites) {
+    private ParkingLot property;
+
+    public JwtAuthenticationResponse(String accessToken, String role) {
         this.accessToken = accessToken;
         this.role = role;
-        this.favorites = favorites;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public List<Long> getFavorites() {
-        return favorites;
-    }
-
-    public void setFavorites(List<Long> favorites) {
-        this.favorites = favorites;
+        this.property = null;
     }
 }

@@ -29,9 +29,6 @@ public class User extends DateAudit {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Size(max = 40)
-    private String name;
-
     @Size(max = 15)
     private String username;
 
@@ -57,14 +54,12 @@ public class User extends DateAudit {
             inverseJoinColumns = @JoinColumn(name = "parking_lot_id"))
     private Set<ParkingLot> favorites = new HashSet<>();
 
-    public User(String name, String username, String email, String password) {
-        this.name = name;
-        this.username = username;
-        this.email = email;
-        this.password = password;
-    }
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinTable(name = "manager_property", joinColumns = @JoinColumn(name = "manager_id"), inverseJoinColumns = @JoinColumn(name = "parking_lot_id"))
+    private ParkingLot property;
 
-    public User(String email, String password) {
+    public User(String username, String email, String password) {
+        this.username = username;
         this.email = email;
         this.password = password;
     }

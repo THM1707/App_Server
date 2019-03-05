@@ -1,5 +1,6 @@
 package com.thm.app_server;
 
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -13,7 +14,13 @@ import java.util.TimeZone;
         AppServerApplication.class,
         Jsr310JpaConverters.class
 })
-public class AppServerApplication {
+public class AppServerApplication implements CommandLineRunner {
+//
+//    @Autowired
+//    UserRepository userRepository;
+//
+//    @Autowired
+//    ParkingLotRepository parkingLotRepository;
 
     @PostConstruct
     void init() {
@@ -22,6 +29,14 @@ public class AppServerApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(AppServerApplication.class, args);
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+//        User u = userRepository.findById(3L).orElse(null);
+//        ParkingLot p = parkingLotRepository.findById(1L).orElse(null);
+//        u.setProperty(p);
+//        userRepository.save(u);
     }
 }
 

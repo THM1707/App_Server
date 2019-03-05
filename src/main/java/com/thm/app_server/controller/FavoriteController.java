@@ -41,7 +41,7 @@ public class FavoriteController {
                 return ResponseEntity.ok(new BasicResourceResponse("OK", u.getFavorites()));
             }
         }
-        return new ResponseEntity<>("Not so fast", HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>("Server error", HttpStatus.BAD_GATEWAY);
     }
 
     @PutMapping("/remove/{id}")

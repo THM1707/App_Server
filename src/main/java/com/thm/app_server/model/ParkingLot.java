@@ -26,6 +26,12 @@ public class ParkingLot extends DateAudit {
 
     private int capacity;
 
+    @Column(name = "open_time")
+    private String openTime;
+
+    @Column(name = "close_time")
+    private String closeTime;
+
     public ParkingLot(String name, String address, double latitude, double longitude, int capacity) {
         this.name = name;
         this.address = address;

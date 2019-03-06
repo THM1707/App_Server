@@ -8,6 +8,7 @@ import com.thm.app_server.model.User;
 import com.thm.app_server.payload.request.SignUpRequest;
 import com.thm.app_server.payload.response.ApiResponse;
 import com.thm.app_server.payload.response.JwtAuthenticationResponse;
+import com.thm.app_server.payload.response.MessageResponse;
 import com.thm.app_server.repository.RoleRepository;
 import com.thm.app_server.repository.UserRepository;
 import com.thm.app_server.security.JwtTokenProvider;
@@ -132,9 +133,9 @@ public class AuthController {
             if (u != null) {
                 u.setPassword(passwordEncoder.encode(newPassword));
                 userRepository.save(u);
-                return ResponseEntity.ok("Password changed");
+                return ResponseEntity.ok(new MessageResponse("Password changed"));
             }
         }
-        return new ResponseEntity<>("Password not correct", HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new MessageResponse("Password not correct"), HttpStatus.BAD_REQUEST);
     }
 }

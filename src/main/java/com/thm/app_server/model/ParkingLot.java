@@ -26,6 +26,8 @@ public class ParkingLot extends DateAudit {
 
     private int capacity;
 
+    private int current = 0;
+
     @Column(name = "open_time")
     private String openTime;
 

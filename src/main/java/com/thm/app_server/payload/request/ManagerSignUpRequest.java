@@ -1,10 +1,21 @@
 package com.thm.app_server.payload.request;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+@Getter
+@Setter
 public class ManagerSignUpRequest {
+
+    @NotBlank
+    @Size(min = 3, max = 15)
+    private String username;
+
     @NotBlank
     @Size(max = 40)
     @Email
@@ -14,20 +25,27 @@ public class ManagerSignUpRequest {
     @Size(min = 6, max = 20)
     private String password;
 
-    public String getEmail() {
-        return email;
-    }
+    @NotBlank
+    private String name;
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    @NotBlank
+    private String address;
 
-    public String getPassword() {
-        return password;
-    }
+    @NotNull
+    private double latitude;
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    @NotNull
+    private double longitude;
 
+    @NotNull
+    private int capacity;
+
+    @NotBlank
+    private String openTime;
+
+    @NotBlank
+    private String closeTime;
+
+    @NotBlank
+    private String image;
 }

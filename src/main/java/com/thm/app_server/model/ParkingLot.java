@@ -34,11 +34,17 @@ public class ParkingLot extends DateAudit {
     @Column(name = "close_time")
     private String closeTime;
 
-    public ParkingLot(String name, String address, double latitude, double longitude, int capacity) {
+    @OneToOne
+    @JoinColumn(name="image_id")
+    private Image image;
+
+    public ParkingLot(String name, String address, double latitude, double longitude, int capacity, String openTime, String closeTime) {
         this.name = name;
         this.address = address;
         this.latitude = latitude;
         this.longitude = longitude;
         this.capacity = capacity;
+        this.openTime = openTime;
+        this.closeTime = closeTime;
     }
 }

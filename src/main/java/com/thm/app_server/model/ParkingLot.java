@@ -1,5 +1,6 @@
 package com.thm.app_server.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,11 +23,19 @@ public class ParkingLot extends DateAudit {
 
     private double latitude;
 
-    private  double longitude;
+    private double longitude;
 
     private int capacity;
 
     private int current = 0;
+
+    private float star = 0f;
+
+    @JsonIgnore
+    private int sum = 0;
+
+    @Column(name = "review_count", columnDefinition = "default '0'")
+    private int reviewCount = 0;
 
     @Column(name = "open_time")
     private String openTime;
@@ -35,7 +44,7 @@ public class ParkingLot extends DateAudit {
     private String closeTime;
 
     @OneToOne
-    @JoinColumn(name="image_id")
+    @JoinColumn(name = "image_id")
     private Image image;
 
     public ParkingLot(String name, String address, double latitude, double longitude, int capacity, String openTime, String closeTime) {

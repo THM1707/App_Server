@@ -33,15 +33,11 @@ public class FavoriteController {
 
     @GetMapping("")
     public ResponseEntity<?> getFavorite() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof UserPrincipal) {
-            Long userId = ((UserPrincipal) principal).getId();
-            User u = userRepository.findById(userId).orElse(null);
-            if (u != null) {
-                return ResponseEntity.ok(new BasicResourceResponse("OK", u.getFavorites()));
-            }
-        }
-        return new ResponseEntity<>("Server error", HttpStatus.BAD_GATEWAY);
+        UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Long userId = principal.getId();
+        User u = userRepository.findById(userId).orElse(null);
+        assert u != null;
+        return ResponseEntity.ok(new BasicResourceResponse("OK", u.getFavorites()));
     }
 
     @PutMapping("/remove/{id}")

@@ -21,4 +21,10 @@ public class SignUpRequest {
     @NotBlank
     @Size(min = 6, max = 20)
     private String password;
+
+    private String name;
+
+    private String phone;
+
+    private int gender;
 }

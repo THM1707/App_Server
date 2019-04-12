@@ -2,7 +2,6 @@ package com.thm.app_server.controller;
 
 import com.thm.app_server.exception.ResourceNotFoundException;
 import com.thm.app_server.model.*;
-import com.thm.app_server.payload.response.BasicResourceResponse;
 import com.thm.app_server.payload.response.IndexResponse;
 import com.thm.app_server.payload.response.InvoiceResponse;
 import com.thm.app_server.payload.response.MessageResponse;
@@ -38,13 +37,6 @@ public class InvoiceController {
         this.parkingLotRepository = parkingLotRepository;
     }
 
-    @Secured("ROLE_ADMIN")
-    @GetMapping("/admin/all")
-    public ResponseEntity<?> show() {
-        List<Invoice> invoiceList = invoiceRepository.findAll();
-        return ResponseEntity.ok(new BasicResourceResponse("success", invoiceList));
-    }
-
     @Secured("ROLE_MANAGER")
     @PostMapping("/manager/create")
     public ResponseEntity<?> createInvoice(@RequestParam String plate) {
@@ -75,30 +67,20 @@ public class InvoiceController {
     @PostMapping("/request")
     public ResponseEntity<?> requestInvoice(@RequestParam Long parkingLotId, @RequestParam String plate) {
         UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", principal.getId()));
+        User user = userRepository.findById(principal.getId()).orElse(null);
         ParkingLot parkingLot = parkingLotRepository.findById(parkingLotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Parking lot", "ID", parkingLotId));
         Invoice pending = invoiceRepository.findByOwnerAndStatus(user, InvoiceStatus.STATUS_PENDING);
         if (pending != null) {
-            if (pending.getParkingLot().getId().equals(parkingLotId)) {
-                if (!pending.getPlate().equals(plate)) {
-                    pending.setPlate(plate);
-                    invoiceRepository.save(pending);
-                    return ResponseEntity.ok(new InvoiceResponse("CHANGED", pending, pending.getParkingLot()));
-                }
-                return new ResponseEntity<>(new MessageResponse(RequestStatus.RESULT_EXIST.toString()), HttpStatus.BAD_REQUEST);
-            } else {
-                return new ResponseEntity<>(new MessageResponse(RequestStatus.RESULT_PENDING.toString()), HttpStatus.BAD_REQUEST);
-            }
+            return new ResponseEntity<>(new MessageResponse(ReserveStatus.PENDING.toString()), HttpStatus.BAD_REQUEST);
         }
         if (parkingLot.getCurrent() == parkingLot.getCapacity()) {
-            return new ResponseEntity<>(new MessageResponse(RequestStatus.RESULT_FULL.toString()), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new MessageResponse(ReserveStatus.FULL.toString()), HttpStatus.BAD_REQUEST);
         }
         List<InvoiceStatus> statusList = getActiveStatusList();
-        Invoice collapse = invoiceRepository.findByParkingLotAndPlateAndStatusIn(parkingLot, plate, statusList);
-        if (collapse != null) {
-            return new ResponseEntity<>(new MessageResponse(RequestStatus.RESULT_COLLAPSE.toString()), HttpStatus.BAD_REQUEST);
+        Invoice exist = invoiceRepository.findByParkingLotAndPlateAndStatusIn(parkingLot, plate, statusList);
+        if (exist != null) {
+            return new ResponseEntity<>(new MessageResponse(ReserveStatus.EXIST.toString()), HttpStatus.BAD_REQUEST);
         }
         parkingLot.setCurrent(parkingLot.getCurrent() + 1);
         parkingLotRepository.save(parkingLot);
@@ -108,6 +90,18 @@ public class InvoiceController {
         return ResponseEntity.ok(new InvoiceResponse("OK", invoice, invoice.getParkingLot()));
     }
 
+    @PostMapping("/change/{id}")
+    public ResponseEntity<MessageResponse> changeReservePlate(@PathVariable Long id, @RequestParam String plate) {
+        Invoice invoice = invoiceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice", "ID", id));
+        ParkingLot parkingLot = invoice.getParkingLot();
+        Invoice exist = invoiceRepository.findByParkingLotAndPlateAndStatusIn(parkingLot, plate, getActiveStatusList());
+        if (exist != null) {
+            return new ResponseEntity<>(new MessageResponse(ReserveStatus.EXIST.toString()), HttpStatus.BAD_REQUEST);
+        }
+        invoice.setPlate(plate);
+        invoiceRepository.save(invoice);
+        return ResponseEntity.ok(new MessageResponse("OK"));
+    }
 
     @Secured("ROLE_MANAGER")
     @PostMapping("/manager/accept/{id}")
@@ -116,6 +110,26 @@ public class InvoiceController {
         invoice.setStatus(InvoiceStatus.STATUS_ACTIVE);
         invoiceRepository.save(invoice);
         return ResponseEntity.ok(new InvoiceResponse("OK", invoice, invoice.getParkingLot()));
+    }
+
+    @PostMapping("/cancel/{id}")
+    public ResponseEntity<?> cancel(@PathVariable Long id) {
+        Invoice invoice = invoiceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice", "ID", id));
+        invoice.setStatus(InvoiceStatus.STATUS_CANCELED);
+        invoice.setEndDate(Instant.now());
+        invoiceRepository.save(invoice);
+        ParkingLot p = invoice.getParkingLot();
+        p.setCurrent(p.getCurrent() - 1);
+        parkingLotRepository.save(p);
+        return ResponseEntity.ok(new MessageResponse("Canceled successfully"));
+    }
+
+    @PostMapping("update/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestParam String plate) {
+        Invoice invoice = invoiceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice", "ID", id));
+        invoice.setPlate(plate);
+        invoiceRepository.save(invoice);
+        return ResponseEntity.ok(new MessageResponse("Success"));
     }
 
     @Secured("ROLE_MANAGER")
@@ -129,18 +143,6 @@ public class InvoiceController {
         p.setCurrent(p.getCurrent() - 1);
         parkingLotRepository.save(p);
         return ResponseEntity.ok(new InvoiceResponse("OK", invoice, p));
-    }
-
-    @PostMapping("/cancel/{id}")
-    public ResponseEntity<?> cancel(@PathVariable Long id) {
-        Invoice invoice = invoiceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice", "ID", id));
-        invoice.setStatus(InvoiceStatus.STATUS_CANCELED);
-        invoice.setEndDate(Instant.now());
-        invoiceRepository.save(invoice);
-        ParkingLot p = invoice.getParkingLot();
-        p.setCurrent(p.getCurrent() - 1);
-        parkingLotRepository.save(p);
-        return ResponseEntity.ok(new MessageResponse("Canceled successfully"));
     }
 
     @Secured("ROLE_MANAGER")

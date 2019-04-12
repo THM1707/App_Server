@@ -13,10 +13,12 @@ import com.thm.app_server.repository.SignUpFormRepository;
 import com.thm.app_server.repository.UserRepository;
 import com.thm.app_server.security.JwtTokenProvider;
 import com.thm.app_server.security.UserPrincipal;
+import com.thm.app_server.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,12 +26,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.validation.Valid;
 import java.net.URI;
 import java.util.Collections;
-import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -50,8 +53,10 @@ public class AuthController {
 
     private ImageRepository imageRepository;
 
+    private EmailService emailService;
+
     @Autowired
-    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, SignUpFormRepository signUpFormRepository, ImageRepository imageRepository) {
+    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, SignUpFormRepository signUpFormRepository, ImageRepository imageRepository, EmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -59,37 +64,32 @@ public class AuthController {
         this.tokenProvider = tokenProvider;
         this.signUpFormRepository = signUpFormRepository;
         this.imageRepository = imageRepository;
+        this.emailService = emailService;
     }
 
     @PostMapping("/signIn")
     public ResponseEntity<?> authenticateUser(@RequestParam String usernameOrEmail, @RequestParam String password) {
-
         Authentication authentication =
                 authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(usernameOrEmail, password)
                 );
-
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
         String jwt = tokenProvider.generateToken(authentication);
         JwtAuthenticationResponse response = new JwtAuthenticationResponse(jwt, RoleName.ROLE_USER.toString());
-
         Object principal = authentication.getPrincipal();
-
         if (principal instanceof UserPrincipal) {
             Long userId = ((UserPrincipal) principal).getId();
             User u = userRepository.findById(userId).orElse(null);
             if (u != null) {
-                response.setFavorites(u.getFavorites().stream().map(ParkingLot::getId).collect(Collectors.toList()));
-                response.setUsername(u.getUsername());
                 response.setEmail(u.getEmail());
+                response.setName(u.getName());
+                response.setGender(u.getGender());
                 if (authentication.getAuthorities().stream().anyMatch(r -> r.getAuthority().equals(RoleName.ROLE_MANAGER.toString()))) {
                     response.setRole(RoleName.ROLE_MANAGER.toString());
                     response.setProperty(u.getProperty());
                 }
             }
         }
-
         return ResponseEntity.ok(response);
     }
 
@@ -113,16 +113,17 @@ public class AuthController {
             User u = userRepository.findById(userId).orElse(null);
             if (u != null) {
                 boolean isAdmin = false;
-                for (Role role: u.getRoles()){
-                    if (role.getName().equals(RoleName.ROLE_ADMIN)){
+                for (Role role : u.getRoles()) {
+                    if (role.getName().equals(RoleName.ROLE_ADMIN)) {
                         isAdmin = true;
                     }
                 }
                 if (!isAdmin) {
                     return new ResponseEntity<>(new MessageResponse("You are not an Admin!"), HttpStatus.UNAUTHORIZED);
                 } else {
+                    response.setGender(u.getGender());
                     response.setEmail(u.getEmail());
-                    response.setUsername(u.getUsername());
+                    response.setName(u.getName());
                 }
             }
         }
@@ -148,7 +149,10 @@ public class AuthController {
         }
 
         User user = new User(signUpRequest.getUsername(),
-                signUpRequest.getEmail(), signUpRequest.getPassword());
+                signUpRequest.getEmail(), signUpRequest.getPassword(),
+                signUpRequest.getName(), signUpRequest.getPhone(), signUpRequest.getGender());
+
+        user.setConfirmationToken(UUID.randomUUID().toString());
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
@@ -157,6 +161,17 @@ public class AuthController {
 
         user.setRoles(Collections.singleton(userRole));
 
+        String appUrl = "http://localhost:8080/api/auth";
+
+        SimpleMailMessage registrationEmail = new SimpleMailMessage();
+        registrationEmail.setTo(user.getEmail());
+        registrationEmail.setSubject("Registration Confirmation");
+        registrationEmail.setText("To confirm your e-mail address, please click the link below:\n"
+                + appUrl + "/confirm?token=" + user.getConfirmationToken());
+        registrationEmail.setFrom("noreply@domain.com");
+
+        emailService.sendEmail(registrationEmail);
+
         User result = userRepository.save(user);
 
         URI location = ServletUriComponentsBuilder
@@ -164,6 +179,23 @@ public class AuthController {
                 .buildAndExpand(result.getId()).toUri();
 
         return ResponseEntity.created(location).body(new ApiResponse(true, "User registered successfully"));
+    }
+
+    @RequestMapping(value = "/confirm", method = RequestMethod.GET)
+    public ModelAndView showConfirmationPage(ModelAndView modelAndView, @RequestParam("token") String token) {
+
+        User user = userRepository.findByConfirmationToken(token);
+
+        if (user == null) {
+            modelAndView.addObject("invalidToken", "Oops!  This is an invalid confirmation link.");
+        } else {
+            modelAndView.addObject("successMessage", "Your account have been actived");
+            user.setEnabled(true);
+            userRepository.save(user);
+        }
+
+        modelAndView.setViewName("confirm");
+        return modelAndView;
     }
 
     @PostMapping("/changePassword")

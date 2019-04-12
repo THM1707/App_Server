@@ -15,6 +15,10 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     List<Invoice> findAllByParkingLot(ParkingLot parkingLot);
 
+    int countAllByOwner(User user);
+
+    int countAllByOwnerAndStatus(User user, InvoiceStatus status);
+
     Invoice findByOwnerAndStatus(User user, InvoiceStatus status);
 
     Invoice findByParkingLotAndPlateAndStatusIn(ParkingLot parkingLot, String plate, List<InvoiceStatus> statusList);

@@ -181,21 +181,18 @@ public class AuthController {
         return ResponseEntity.created(location).body(new ApiResponse(true, "User registered successfully"));
     }
 
-    @RequestMapping(value = "/confirm", method = RequestMethod.GET)
-    public ModelAndView showConfirmationPage(ModelAndView modelAndView, @RequestParam("token") String token) {
+    @RequestMapping(value = "/confirm", method = RequestMethod.POST)
+    public ResponseEntity<?> confirm(@RequestParam("token") String token) {
 
         User user = userRepository.findByConfirmationToken(token);
 
         if (user == null) {
-            modelAndView.addObject("invalidToken", "Oops!  This is an invalid confirmation link.");
+            return new ResponseEntity<>(new MessageResponse("Invalid"), HttpStatus.BAD_REQUEST);
         } else {
-            modelAndView.addObject("successMessage", "Your account have been actived");
             user.setEnabled(true);
             userRepository.save(user);
+            return ResponseEntity.ok(new MessageResponse("OK"));
         }
-
-        modelAndView.setViewName("confirm");
-        return modelAndView;
     }
 
     @PostMapping("/changePassword")

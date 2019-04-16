@@ -5,6 +5,7 @@ import com.thm.app_server.model.ParkingLot;
 import com.thm.app_server.model.Review;
 import com.thm.app_server.repository.ParkingLotRepository;
 import com.thm.app_server.repository.ReviewRepository;
+import com.thm.app_server.service.FirebaseService;
 import com.thm.app_server.service.ReviewService;
 import org.springframework.stereotype.Service;
 
@@ -14,10 +15,12 @@ public class ReviewServiceImpl implements ReviewService {
 
     private ReviewRepository reviewRepository;
     private ParkingLotRepository parkingLotRepository;
+    private FirebaseService firebaseService;
 
-    public ReviewServiceImpl(ReviewRepository reviewRepository, ParkingLotRepository parkingLotRepository) {
+    public ReviewServiceImpl(ReviewRepository reviewRepository, ParkingLotRepository parkingLotRepository, FirebaseService firebaseService) {
         this.reviewRepository = reviewRepository;
         this.parkingLotRepository = parkingLotRepository;
+        this.firebaseService = firebaseService;
     }
 
     @Override
@@ -33,6 +36,7 @@ public class ReviewServiceImpl implements ReviewService {
         review.setTarget(parkingLot);
         reviewRepository.save(review);
         parkingLotRepository.save(parkingLot);
+        firebaseService.setStar(parkingLot.getId(), parkingLot.getStar());
     }
 
     @Override
@@ -50,9 +54,10 @@ public class ReviewServiceImpl implements ReviewService {
         int sum = parkingLot.getSum();
         sum = sum - oldStar + star;
         parkingLot.setSum(sum);
-        parkingLot.setStar((float) (sum * 1f / parkingLot.getReviewCount()));
+        parkingLot.setStar((sum * 1f / parkingLot.getReviewCount()));
         reviewRepository.save(review);
         parkingLotRepository.save(parkingLot);
+        firebaseService.setStar(parkingLot.getId(), parkingLot.getStar());
         return review;
     }
 
@@ -69,6 +74,7 @@ public class ReviewServiceImpl implements ReviewService {
         parkingLot.setStar(count == 0 ? 0 : (sum * 1f / count));
         reviewRepository.delete(review);
         parkingLotRepository.save(parkingLot);
+        firebaseService.setStar(parkingLot.getId(), parkingLot.getStar());
     }
 
 }

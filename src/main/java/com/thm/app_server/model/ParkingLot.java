@@ -31,6 +31,8 @@ public class ParkingLot extends DateAudit {
 
     private float star = 0f;
 
+    private int pending = 0;
+
     @JsonIgnore
     private int sum = 0;
 

@@ -10,7 +10,6 @@ import com.thm.app_server.repository.ParkingLotRepository;
 import com.thm.app_server.repository.ReviewRepository;
 import com.thm.app_server.repository.UserRepository;
 import com.thm.app_server.security.UserPrincipal;
-import com.thm.app_server.service.impl.ReviewServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -44,8 +43,8 @@ public class ParkingLotController {
         User user = userRepository.findById(principal.getId()).orElse(null);
         boolean isFavorite = false;
         if (user != null) {
-            for (ParkingLot p: user.getFavorites()) {
-                if (id.equals(p.getId())){
+            for (ParkingLot p : user.getFavorites()) {
+                if (id.equals(p.getId())) {
                     isFavorite = true;
                     break;
                 }
@@ -62,7 +61,7 @@ public class ParkingLotController {
     }
 
     @GetMapping("/{id}/reviews")
-    public ResponseEntity<?> getReviews(@PathVariable Long id){
+    public ResponseEntity<?> getReviews(@PathVariable Long id) {
         ParkingLot parkingLot = parkingLotRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Parking lot", "ID", id));
         List<Review> reviewList = reviewRepository.findAllByTarget(parkingLot);
         return ResponseEntity.ok(new BasicResourceResponse("OK", reviewList));

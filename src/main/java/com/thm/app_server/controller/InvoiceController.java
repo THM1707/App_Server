@@ -2,6 +2,7 @@ package com.thm.app_server.controller;
 
 import com.thm.app_server.exception.ResourceNotFoundException;
 import com.thm.app_server.model.*;
+import com.thm.app_server.payload.response.BasicResourceResponse;
 import com.thm.app_server.payload.response.IndexResponse;
 import com.thm.app_server.payload.response.InvoiceResponse;
 import com.thm.app_server.payload.response.MessageResponse;
@@ -9,6 +10,7 @@ import com.thm.app_server.repository.InvoiceRepository;
 import com.thm.app_server.repository.ParkingLotRepository;
 import com.thm.app_server.repository.UserRepository;
 import com.thm.app_server.security.UserPrincipal;
+import com.thm.app_server.service.FirebaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,11 +32,15 @@ public class InvoiceController {
 
     private ParkingLotRepository parkingLotRepository;
 
+    private FirebaseService firebaseService;
+
     @Autowired
-    public InvoiceController(InvoiceRepository invoiceRepository, UserRepository userRepository, ParkingLotRepository parkingLotRepository) {
+    public InvoiceController(InvoiceRepository invoiceRepository, UserRepository userRepository,
+                             ParkingLotRepository parkingLotRepository, FirebaseService firebaseService) {
         this.invoiceRepository = invoiceRepository;
         this.userRepository = userRepository;
         this.parkingLotRepository = parkingLotRepository;
+        this.firebaseService = firebaseService;
     }
 
     @Secured("ROLE_MANAGER")
@@ -58,6 +64,7 @@ public class InvoiceController {
         }
         parkingLot.setCurrent(parkingLot.getCurrent() + 1);
         parkingLotRepository.save(parkingLot);
+        firebaseService.setAvailable(parkingLot.getId(), parkingLot.getCapacity() - parkingLot.getCurrent());
         Invoice invoice = new Invoice(null, parkingLot, plate);
         invoice.setStatus(InvoiceStatus.STATUS_ACTIVE);
         invoiceRepository.save(invoice);
@@ -83,7 +90,10 @@ public class InvoiceController {
             return new ResponseEntity<>(new MessageResponse(ReserveStatus.EXIST.toString()), HttpStatus.BAD_REQUEST);
         }
         parkingLot.setCurrent(parkingLot.getCurrent() + 1);
+        parkingLot.setPending(parkingLot.getPending() + 1);
         parkingLotRepository.save(parkingLot);
+        firebaseService.setAvailable(parkingLot.getId(), parkingLot.getCapacity() - parkingLot.getCurrent());
+        firebaseService.setPending(parkingLot.getId(), parkingLot.getPending());
         Invoice invoice = new Invoice(user, parkingLot, plate);
         invoice.setBooked(true);
         invoiceRepository.save(invoice);
@@ -107,8 +117,12 @@ public class InvoiceController {
     @PostMapping("/manager/accept/{id}")
     public ResponseEntity<?> acceptInvoice(@PathVariable Long id) {
         Invoice invoice = invoiceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice", "ID", id));
+        ParkingLot parkingLot = invoice.getParkingLot();
+        parkingLot.setPending(parkingLot.getPending() - 1);
+        parkingLotRepository.save(parkingLot);
         invoice.setStatus(InvoiceStatus.STATUS_ACTIVE);
         invoiceRepository.save(invoice);
+        firebaseService.setPending(parkingLot.getId(), parkingLot.getPending());
         return ResponseEntity.ok(new InvoiceResponse("OK", invoice, invoice.getParkingLot()));
     }
 
@@ -118,9 +132,12 @@ public class InvoiceController {
         invoice.setStatus(InvoiceStatus.STATUS_CANCELED);
         invoice.setEndDate(Instant.now());
         invoiceRepository.save(invoice);
-        ParkingLot p = invoice.getParkingLot();
-        p.setCurrent(p.getCurrent() - 1);
-        parkingLotRepository.save(p);
+        ParkingLot parkingLot = invoice.getParkingLot();
+        parkingLot.setCurrent(parkingLot.getCurrent() - 1);
+        parkingLot.setPending(parkingLot.getPending() - 1);
+        parkingLotRepository.save(parkingLot);
+        firebaseService.setPending(parkingLot.getId(), parkingLot.getPending());
+        firebaseService.setAvailable(parkingLot.getId(), parkingLot.getCapacity() - parkingLot.getCurrent());
         return ResponseEntity.ok(new MessageResponse("Canceled successfully"));
     }
 
@@ -139,10 +156,11 @@ public class InvoiceController {
         invoice.setEndDate(Instant.now());
         invoice.setStatus(InvoiceStatus.STATUS_DONE);
         invoiceRepository.save(invoice);
-        ParkingLot p = invoice.getParkingLot();
-        p.setCurrent(p.getCurrent() - 1);
-        parkingLotRepository.save(p);
-        return ResponseEntity.ok(new InvoiceResponse("OK", invoice, p));
+        ParkingLot parkingLot = invoice.getParkingLot();
+        parkingLot.setCurrent(parkingLot.getCurrent() - 1);
+        parkingLotRepository.save(parkingLot);
+        firebaseService.setAvailable(parkingLot.getId(), parkingLot.getCapacity() - parkingLot.getCurrent());
+        return ResponseEntity.ok(new InvoiceResponse("OK", invoice, parkingLot));
     }
 
     @Secured("ROLE_MANAGER")
@@ -159,6 +177,34 @@ public class InvoiceController {
         return ResponseEntity.ok(new IndexResponse(activeList, endedList, allList));
     }
 
+    @Secured("ROLE_MANAGER")
+    @GetMapping("/manager/active")
+    public ResponseEntity<?> getActive() {
+        UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userRepository.findById(principal.getId())
+                .orElse(null);
+        if (user != null) {
+            List<Invoice> activeList = invoiceRepository.findAllByParkingLotAndStatusIn(user.getProperty(), getActiveStatusList());
+            return ResponseEntity.ok(new BasicResourceResponse("OK", activeList));
+        } else {
+            return new ResponseEntity<>(new MessageResponse("Fail"), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Secured("ROLE_MANAGER")
+    @GetMapping("/manager/done")
+    public ResponseEntity<?> getDone() {
+        UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userRepository.findById(principal.getId())
+                .orElse(null);
+        if (user != null) {
+            List<Invoice> doneList = invoiceRepository.findAllByParkingLotAndStatusIn(user.getProperty(), getDoneStatusList());
+            return ResponseEntity.ok(new BasicResourceResponse("OK", doneList));
+        } else {
+            return new ResponseEntity<>(new MessageResponse("Fail"), HttpStatus.BAD_REQUEST);
+        }
+    }
+
     @GetMapping("/user_pending")
     public ResponseEntity<?> pendingListForUser() {
         UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -172,10 +218,17 @@ public class InvoiceController {
         return ResponseEntity.ok(new InvoiceResponse("OK", invoice, invoice.getParkingLot()));
     }
 
-    public List<InvoiceStatus> getActiveStatusList() {
+    private List<InvoiceStatus> getActiveStatusList() {
         List<InvoiceStatus> result = new ArrayList<>();
         result.add(InvoiceStatus.STATUS_ACTIVE);
         result.add(InvoiceStatus.STATUS_PENDING);
+        return result;
+    }
+
+    private List<InvoiceStatus> getDoneStatusList() {
+        List<InvoiceStatus> result = new ArrayList<>();
+        result.add(InvoiceStatus.STATUS_DONE);
+        result.add(InvoiceStatus.STATUS_CANCELED);
         return result;
     }
 }

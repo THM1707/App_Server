@@ -5,8 +5,12 @@
     <title>Confirm Account</title>
 </head>
 <body>
-<h1 th:if="${invalidToken}" th:text=${invalidToken}></h1>
-<h1 th:if="${successMessage}" th:text=${successMessage}></h1>
+<div th:if="${invalidToken}">
+    <h1 th:text="${invalidToken}"></h1>
+</div>
+<div th:if="${successMessage}">
+    <h1 th:text="${successMessage}"></h1>
+</div>
 
 </body>
 </html>

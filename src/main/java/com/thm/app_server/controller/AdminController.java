@@ -5,8 +5,11 @@ import com.thm.app_server.model.*;
 import com.thm.app_server.payload.response.BasicResourceResponse;
 import com.thm.app_server.payload.response.MessageResponse;
 import com.thm.app_server.repository.*;
+import com.thm.app_server.service.EmailService;
+import com.thm.app_server.service.FirebaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -22,19 +25,24 @@ public class AdminController {
 
     private RoleRepository roleRepository;
 
-    private PasswordEncoder passwordEncoder;
 
     private SignUpFormRepository signUpFormRepository;
 
     private ParkingLotRepository parkingLotRepository;
 
+    private EmailService emailService;
+
+    private final FirebaseService firebaseService;
+
+
     @Autowired
-    public AdminController(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, SignUpFormRepository signUpFormRepository, ParkingLotRepository parkingLotRepository) {
+    public AdminController(UserRepository userRepository, RoleRepository roleRepository, SignUpFormRepository signUpFormRepository, ParkingLotRepository parkingLotRepository, EmailService emailService, FirebaseService firebaseService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
-        this.passwordEncoder = passwordEncoder;
         this.signUpFormRepository = signUpFormRepository;
         this.parkingLotRepository = parkingLotRepository;
+        this.emailService = emailService;
+        this.firebaseService = firebaseService;
     }
 
     @Secured("ROLE_ADMIN")
@@ -53,6 +61,14 @@ public class AdminController {
         signUpFormRepository.save(form);
         parkingLotRepository.save(parkingLot);
         userRepository.save(user);
+        firebaseService.addParkingLot(parkingLot.getId(), parkingLot.getName(), parkingLot.getLatitude(),
+                parkingLot.getLongitude(), parkingLot.getStar(), parkingLot.getCapacity() - parkingLot.getCurrent());
+        SimpleMailMessage registrationEmail = new SimpleMailMessage();
+        registrationEmail.setTo(user.getEmail());
+        registrationEmail.setSubject("Registration Success");
+        registrationEmail.setText("Your registration for account " + user.getUsername() + " has been accepted. Download our app to begin now!");
+        registrationEmail.setFrom("noreply@domain.com");
+        emailService.sendEmail(registrationEmail);
         return ResponseEntity.ok(new MessageResponse("Create Success"));
     }
 
@@ -69,6 +85,12 @@ public class AdminController {
         SignUpForm form = signUpFormRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Form", "ID", id));
         form.setStatus(SignUpFormStatus.DENIED);
         signUpFormRepository.save(form);
+        SimpleMailMessage registrationEmail = new SimpleMailMessage();
+        registrationEmail.setTo(form.getEmail());
+        registrationEmail.setSubject("Registration Confirmation");
+        registrationEmail.setText("Your registration for new Parking Lot have been denied. Sorry for the inconvenience");
+        registrationEmail.setFrom("noreply@domain.com");
+        emailService.sendEmail(registrationEmail);
         return ResponseEntity.ok(new MessageResponse("Deny Success"));
     }
 }

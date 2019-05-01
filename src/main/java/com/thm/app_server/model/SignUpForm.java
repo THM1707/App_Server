@@ -29,10 +29,16 @@ public class SignUpForm {
 
     private String email;
 
+    private String name;
+
+    private String phone;
+
+    private int gender;
+
     @JsonIgnore
     private String password;
 
-    private String name;
+    private String propertyName;
 
     private String address;
 
@@ -42,6 +48,7 @@ public class SignUpForm {
 
     private int capacity;
 
+    private int price;
 
     @JsonIgnore
     @Enumerated(EnumType.STRING)
@@ -55,7 +62,7 @@ public class SignUpForm {
     private String closeTime;
 
     @OneToOne
-    @JoinColumn(name="image_id")
+    @JoinColumn(name = "image_id")
     private Image image;
 
     public SignUpForm(ManagerSignUpRequest request) {
@@ -63,11 +70,15 @@ public class SignUpForm {
         email = request.getEmail();
         password = request.getPassword();
         name = request.getName();
+        propertyName = request.getPropertyName();
+        gender = request.getGender();
+        phone = request.getPhone();
         address = request.getAddress();
         latitude = request.getLatitude();
         longitude = request.getLongitude();
         capacity = request.getCapacity();
         openTime = request.getOpenTime();
         closeTime = request.getCloseTime();
+        price = request.getPrice();
     }
 }

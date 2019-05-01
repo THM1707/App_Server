@@ -30,8 +30,9 @@ public class DemoController {
 
     @PostMapping("/add")
     public ResponseEntity<?> add(@RequestParam Long id, @RequestParam String name, @RequestParam float star,
-                                 @RequestParam double latitude, @RequestParam double longitude, @RequestParam int available) {
-        firebaseService.addParkingLot(id, name, latitude, longitude, star, available);
+                                 @RequestParam double latitude, @RequestParam double longitude,
+                                 @RequestParam int available, @RequestParam int price) {
+        firebaseService.addParkingLot(id, name, latitude, longitude, star, available, price);
         return ResponseEntity.ok("OK");
     }
 

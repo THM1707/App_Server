@@ -29,6 +29,15 @@ public class ManagerSignUpRequest {
     private String name;
 
     @NotBlank
+    private String phone;
+
+    @NotNull
+    private int gender;
+
+    @NotBlank
+    private String propertyName;
+
+    @NotBlank
     private String address;
 
     @NotNull
@@ -48,4 +57,7 @@ public class ManagerSignUpRequest {
 
     @NotBlank
     private String image;
+
+    @NotNull
+    private int price;
 }

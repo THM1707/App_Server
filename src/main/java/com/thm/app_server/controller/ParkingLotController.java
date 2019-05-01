@@ -4,7 +4,6 @@ import com.thm.app_server.exception.ResourceNotFoundException;
 import com.thm.app_server.model.ParkingLot;
 import com.thm.app_server.model.Review;
 import com.thm.app_server.model.User;
-import com.thm.app_server.payload.request.ParkingLotIdsRequest;
 import com.thm.app_server.payload.response.BasicResourceResponse;
 import com.thm.app_server.repository.ParkingLotRepository;
 import com.thm.app_server.repository.ReviewRepository;
@@ -54,11 +53,6 @@ public class ParkingLotController {
         return ResponseEntity.ok(new BasicResourceResponse(isFavorite ? "Is Favorite" : "Not Favorite", p));
     }
 
-    @PostMapping("/in")
-    public ResponseEntity<?> in(@RequestBody ParkingLotIdsRequest request) {
-        List<ParkingLot> result = parkingLotRepository.findByIdIn(request.getIdList());
-        return ResponseEntity.ok(new BasicResourceResponse("success", result));
-    }
 
     @GetMapping("/{id}/reviews")
     public ResponseEntity<?> getReviews(@PathVariable Long id) {

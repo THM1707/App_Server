@@ -18,6 +18,7 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -72,7 +73,8 @@ public class InvoiceController {
     }
 
     @PostMapping("/request")
-    public ResponseEntity<?> requestInvoice(@RequestParam Long parkingLotId, @RequestParam String plate) {
+    public ResponseEntity<?> requestInvoice(@RequestParam Long parkingLotId, @RequestParam String plate,
+                                            @RequestParam int duration) {
         UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User user = userRepository.findById(principal.getId()).orElse(null);
         ParkingLot parkingLot = parkingLotRepository.findById(parkingLotId)
@@ -95,20 +97,27 @@ public class InvoiceController {
         firebaseService.setAvailable(parkingLot.getId(), parkingLot.getCapacity() - parkingLot.getCurrent());
         firebaseService.setPending(parkingLot.getId(), parkingLot.getPending());
         Invoice invoice = new Invoice(user, parkingLot, plate);
+        invoice.setDuration(duration);
+        invoice.setIncome(duration * parkingLot.getPrice());
         invoice.setBooked(true);
         invoiceRepository.save(invoice);
         return ResponseEntity.ok(new InvoiceResponse("OK", invoice, invoice.getParkingLot()));
     }
 
     @PostMapping("/change/{id}")
-    public ResponseEntity<MessageResponse> changeReservePlate(@PathVariable Long id, @RequestParam String plate) {
+    public ResponseEntity<MessageResponse> changeReservePlate(@PathVariable Long id, @RequestParam String plate,
+                                                              @RequestParam int duration) {
         Invoice invoice = invoiceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice", "ID", id));
         ParkingLot parkingLot = invoice.getParkingLot();
         Invoice exist = invoiceRepository.findByParkingLotAndPlateAndStatusIn(parkingLot, plate, getActiveStatusList());
         if (exist != null) {
-            return new ResponseEntity<>(new MessageResponse(ReserveStatus.EXIST.toString()), HttpStatus.BAD_REQUEST);
+            if (!exist.getId().equals(id)) {
+                return new ResponseEntity<>(new MessageResponse(ReserveStatus.EXIST.toString()), HttpStatus.BAD_REQUEST);
+            }
         }
         invoice.setPlate(plate);
+        invoice.setDuration(duration);
+        invoice.setIncome(duration * parkingLot.getPrice());
         invoiceRepository.save(invoice);
         return ResponseEntity.ok(new MessageResponse("OK"));
     }
@@ -141,22 +150,21 @@ public class InvoiceController {
         return ResponseEntity.ok(new MessageResponse("Canceled successfully"));
     }
 
-    @PostMapping("update/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestParam String plate) {
-        Invoice invoice = invoiceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice", "ID", id));
-        invoice.setPlate(plate);
-        invoiceRepository.save(invoice);
-        return ResponseEntity.ok(new MessageResponse("Success"));
-    }
-
     @Secured("ROLE_MANAGER")
     @PostMapping("/manager/withdraw/{id}")
     public ResponseEntity<?> withdraw(@PathVariable Long id) {
         Invoice invoice = invoiceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice", "ID", id));
+        ParkingLot parkingLot = invoice.getParkingLot();
         invoice.setEndDate(Instant.now());
         invoice.setStatus(InvoiceStatus.STATUS_DONE);
+        Duration duration = Duration.between(invoice.getCreatedDate(), invoice.getEndDate());
+        long hour = duration.getSeconds() / 3600;
+        if (hour == 0) {
+            hour = 1;
+        }
+        invoice.setDuration((int) hour);
+        invoice.setIncome((int) (hour * parkingLot.getPrice()));
         invoiceRepository.save(invoice);
-        ParkingLot parkingLot = invoice.getParkingLot();
         parkingLot.setCurrent(parkingLot.getCurrent() - 1);
         parkingLotRepository.save(parkingLot);
         firebaseService.setAvailable(parkingLot.getId(), parkingLot.getCapacity() - parkingLot.getCurrent());

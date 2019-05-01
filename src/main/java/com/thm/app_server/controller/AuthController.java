@@ -210,7 +210,7 @@ public class AuthController {
         return new ResponseEntity<>(new MessageResponse("Password not correct"), HttpStatus.BAD_REQUEST);
     }
 
-    @PostMapping("/manager/sign_up")
+    @PostMapping("/manager/signUp")
     public ResponseEntity<?> createManager(@Valid @RequestBody ManagerSignUpRequest request, Errors errors) {
         if (errors.hasErrors()) {
             return new ResponseEntity<>(new MessageResponse("Validation error"), HttpStatus.BAD_REQUEST);

@@ -4,14 +4,16 @@ import com.thm.app_server.exception.ResourceNotFoundException;
 import com.thm.app_server.model.*;
 import com.thm.app_server.payload.response.BasicResourceResponse;
 import com.thm.app_server.payload.response.MessageResponse;
-import com.thm.app_server.repository.*;
+import com.thm.app_server.repository.ParkingLotRepository;
+import com.thm.app_server.repository.RoleRepository;
+import com.thm.app_server.repository.SignUpFormRepository;
+import com.thm.app_server.repository.UserRepository;
 import com.thm.app_server.service.EmailService;
 import com.thm.app_server.service.FirebaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.access.annotation.Secured;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
@@ -49,20 +51,23 @@ public class AdminController {
     @PostMapping("/signUp/accept/{id}")
     public ResponseEntity<?> acceptRegister(@PathVariable Long id) {
         SignUpForm form = signUpFormRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Form", "ID", id));
-        User user = new User(form.getUsername(), form.getEmail(), form.getPassword());
+        User user = new User(form.getUsername(), form.getEmail(), form.getPassword(), form.getName(), form.getPhone(), form.getGender());
+        user.setEnabled(true);
         RoleName[] roleNameArray = {RoleName.ROLE_MANAGER, RoleName.ROLE_USER};
         List<Role> roleList = roleRepository.findByNameIn(roleNameArray);
         user.setRoles(new HashSet<>(roleList));
-        ParkingLot parkingLot = new ParkingLot(form.getName(), form.getAddress(), form.getLatitude(), form.getLongitude(), form.getCapacity(), form.getOpenTime(), form.getCloseTime());
+        ParkingLot parkingLot = new ParkingLot(form.getPropertyName(), form.getAddress(), form.getLatitude(), form.getLongitude(), form.getCapacity(), form.getOpenTime(), form.getCloseTime(), form.getPrice());
         Image image = form.getImage();
         parkingLot.setImage(image);
         user.setProperty(parkingLot);
         form.setStatus(SignUpFormStatus.ACCEPTED);
         signUpFormRepository.save(form);
-        parkingLotRepository.save(parkingLot);
+        ParkingLot savedParkingLot = parkingLotRepository.save(parkingLot);
         userRepository.save(user);
-        firebaseService.addParkingLot(parkingLot.getId(), parkingLot.getName(), parkingLot.getLatitude(),
-                parkingLot.getLongitude(), parkingLot.getStar(), parkingLot.getCapacity() - parkingLot.getCurrent());
+        firebaseService.addParkingLot(savedParkingLot.getId(), savedParkingLot.getName(), savedParkingLot.getLatitude(),
+                savedParkingLot.getLongitude(), savedParkingLot.getStar(), savedParkingLot.getCapacity() - savedParkingLot.getCurrent()
+                , savedParkingLot.getPrice());
+        firebaseService.setPending(savedParkingLot.getId(), 0);
         SimpleMailMessage registrationEmail = new SimpleMailMessage();
         registrationEmail.setTo(user.getEmail());
         registrationEmail.setSubject("Registration Success");

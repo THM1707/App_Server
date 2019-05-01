@@ -38,7 +38,7 @@ public class FirebaseService {
     }
 
     @Async
-    public void addParkingLot(Long id, String name, double latitude, double longitude, float star, int available) {
+    public void addParkingLot(Long id, String name, double latitude, double longitude, float star, int available, int price) {
         final String uri = "https://gr-project-1707.firebaseio.com/parking/" + id + ".json";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -49,6 +49,7 @@ public class FirebaseService {
         content.put("longitude", longitude);
         content.put("star", star);
         content.put("available", available);
+        content.put("price", price);
         HttpEntity<String> entity = new HttpEntity<>(content.toString(), headers);
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.getMessageConverters()

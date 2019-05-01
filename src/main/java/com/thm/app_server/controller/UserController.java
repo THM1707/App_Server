@@ -1,25 +1,27 @@
 package com.thm.app_server.controller;
 
 import com.thm.app_server.exception.ResourceNotFoundException;
-import com.thm.app_server.model.InvoiceStatus;
-import com.thm.app_server.model.ParkingLot;
-import com.thm.app_server.model.Review;
-import com.thm.app_server.model.User;
+import com.thm.app_server.model.*;
 import com.thm.app_server.payload.request.ChangeProfileRequest;
 import com.thm.app_server.payload.request.ReviewRequest;
+import com.thm.app_server.payload.request.SearchingRequest;
 import com.thm.app_server.payload.response.BasicResourceResponse;
 import com.thm.app_server.payload.response.MessageResponse;
 import com.thm.app_server.payload.response.ProfileResponse;
 import com.thm.app_server.repository.InvoiceRepository;
 import com.thm.app_server.repository.ParkingLotRepository;
+import com.thm.app_server.repository.StandardRepository;
 import com.thm.app_server.repository.UserRepository;
 import com.thm.app_server.security.UserPrincipal;
+import com.thm.app_server.service.SearchingService;
 import com.thm.app_server.service.impl.ReviewServiceImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 // Handle users' relate action
 @RestController
@@ -35,12 +37,18 @@ public class UserController {
 
     private ParkingLotRepository parkingLotRepository;
 
-    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder, InvoiceRepository invoiceRepository, ReviewServiceImpl reviewService, ParkingLotRepository parkingLotRepository) {
+    private StandardRepository standardRepository;
+
+    private SearchingService searchingService;
+
+    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder, InvoiceRepository invoiceRepository, ReviewServiceImpl reviewService, ParkingLotRepository parkingLotRepository, StandardRepository standardRepository, SearchingService searchingService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.invoiceRepository = invoiceRepository;
         this.reviewService = reviewService;
         this.parkingLotRepository = parkingLotRepository;
+        this.standardRepository = standardRepository;
+        this.searchingService = searchingService;
     }
 
     @GetMapping("/profile")
@@ -102,4 +110,21 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    @PostMapping("/smartSearching")
+    public ResponseEntity<?> smartSearching(@RequestBody SearchingRequest request) {
+        Standard standard;
+        switch (request.getOption()) {
+            case 0:
+                standard = standardRepository.findByType(StandardType.STANDARD_DISTANCE);
+                break;
+            case 1:
+                standard = standardRepository.findByType(StandardType.STANDARD_PRICE);
+                break;
+            default:
+                return new ResponseEntity<>(new MessageResponse("Invalid request"), HttpStatus.BAD_REQUEST);
+        }
+        Map<Integer, Long> result = searchingService.getSortedValues(request.getLatitude(), request.getLongitude(),
+                request.getDistance(), request.getBudget(), request.getDuration(), standard);
+        return ResponseEntity.ok(new BasicResourceResponse("OK", result));
+    }
 }

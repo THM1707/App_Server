@@ -33,6 +33,8 @@ public class ParkingLot extends DateAudit {
 
     private int pending = 0;
 
+    private int price = 0;
+
     @JsonIgnore
     private int sum = 0;
 
@@ -49,7 +51,7 @@ public class ParkingLot extends DateAudit {
     @JoinColumn(name = "image_id")
     private Image image;
 
-    public ParkingLot(String name, String address, double latitude, double longitude, int capacity, String openTime, String closeTime) {
+    public ParkingLot(String name, String address, double latitude, double longitude, int capacity, String openTime, String closeTime, int price) {
         this.name = name;
         this.address = address;
         this.latitude = latitude;
@@ -57,5 +59,6 @@ public class ParkingLot extends DateAudit {
         this.capacity = capacity;
         this.openTime = openTime;
         this.closeTime = closeTime;
+        this.price = price;
     }
 }

@@ -38,6 +38,10 @@ public class Invoice {
 
     private String plate;
 
+    private int income = 0;
+
+    private int duration = 0;
+
     @Column(name = "is_booked")
     private boolean isBooked = false;
 

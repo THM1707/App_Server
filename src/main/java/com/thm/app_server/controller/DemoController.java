@@ -41,4 +41,10 @@ public class DemoController {
         firebaseService.setPending(id, value);
         return ResponseEntity.ok("OK");
     }
+
+    @PostMapping("/notification")
+    public ResponseEntity<?> sendNotification(@RequestParam String token, @RequestParam int value) {
+        firebaseService.sendWalletChangeMessage(token, value, 0);
+        return ResponseEntity.ok("OK");
+    }
 }

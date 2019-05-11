@@ -74,6 +74,11 @@ public class User extends DateAudit {
     @Column(name = "confirmation_token")
     private String confirmationToken;
 
+    private int budget = 0;
+
+    @Column(name = "firebase_token")
+    private String firebaseToken;
+
     public User(String username, String email, String password, String name, String phone, int gender) {
         this.username = username;
         this.email = email;

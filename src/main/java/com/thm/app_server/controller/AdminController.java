@@ -85,6 +85,13 @@ public class AdminController {
     }
 
     @Secured("ROLE_ADMIN")
+    @GetMapping("/signUp/{id}")
+    public ResponseEntity<?> getForm(@PathVariable Long id) {
+        SignUpForm form = signUpFormRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Form", "ID", id));
+        return ResponseEntity.ok(new BasicResourceResponse("OK", form));
+    }
+
+    @Secured("ROLE_ADMIN")
     @PostMapping("/signUp/deny/{id}")
     public ResponseEntity<?> denyRegister(@PathVariable Long id) {
         SignUpForm form = signUpFormRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Form", "ID", id));

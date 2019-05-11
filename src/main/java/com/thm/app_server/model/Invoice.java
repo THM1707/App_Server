@@ -49,6 +49,8 @@ public class Invoice {
     @Column(name = "status")
     private InvoiceStatus status;
 
+    private int late = 0;
+
     public Invoice(User owner, ParkingLot parkingLot, String plate) {
         this.owner = owner;
         this.parkingLot = parkingLot;

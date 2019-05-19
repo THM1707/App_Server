@@ -4,10 +4,8 @@ import com.thm.app_server.exception.ResourceNotFoundException;
 import com.thm.app_server.model.*;
 import com.thm.app_server.payload.response.BasicResourceResponse;
 import com.thm.app_server.payload.response.MessageResponse;
-import com.thm.app_server.repository.ParkingLotRepository;
-import com.thm.app_server.repository.RoleRepository;
-import com.thm.app_server.repository.SignUpFormRepository;
-import com.thm.app_server.repository.UserRepository;
+import com.thm.app_server.payload.response.StatisticResponse;
+import com.thm.app_server.repository.*;
 import com.thm.app_server.service.EmailService;
 import com.thm.app_server.service.FirebaseService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +14,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 
@@ -27,6 +27,7 @@ public class AdminController {
 
     private RoleRepository roleRepository;
 
+    private InvoiceRepository invoiceRepository;
 
     private SignUpFormRepository signUpFormRepository;
 
@@ -38,13 +39,16 @@ public class AdminController {
 
 
     @Autowired
-    public AdminController(UserRepository userRepository, RoleRepository roleRepository, SignUpFormRepository signUpFormRepository, ParkingLotRepository parkingLotRepository, EmailService emailService, FirebaseService firebaseService) {
+    public AdminController(UserRepository userRepository, RoleRepository roleRepository,
+                           SignUpFormRepository signUpFormRepository, ParkingLotRepository parkingLotRepository,
+                           EmailService emailService, FirebaseService firebaseService, InvoiceRepository invoiceRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.signUpFormRepository = signUpFormRepository;
         this.parkingLotRepository = parkingLotRepository;
         this.emailService = emailService;
         this.firebaseService = firebaseService;
+        this.invoiceRepository = invoiceRepository;
     }
 
     @Secured("ROLE_ADMIN")
@@ -59,15 +63,17 @@ public class AdminController {
         ParkingLot parkingLot = new ParkingLot(form.getPropertyName(), form.getAddress(), form.getLatitude(), form.getLongitude(), form.getCapacity(), form.getOpenTime(), form.getCloseTime(), form.getPrice());
         Image image = form.getImage();
         parkingLot.setImage(image);
+        parkingLot.setType(1);
+        parkingLot.setOwner(user);
         user.setProperty(parkingLot);
         form.setStatus(SignUpFormStatus.ACCEPTED);
         signUpFormRepository.save(form);
-        ParkingLot savedParkingLot = parkingLotRepository.save(parkingLot);
         userRepository.save(user);
-        firebaseService.addParkingLot(savedParkingLot.getId(), savedParkingLot.getName(), savedParkingLot.getLatitude(),
+        ParkingLot savedParkingLot = parkingLotRepository.save(parkingLot);
+        firebaseService.addOrEditParkingLot(savedParkingLot.getId(), savedParkingLot.getName(), savedParkingLot.getLatitude(),
                 savedParkingLot.getLongitude(), savedParkingLot.getStar(), savedParkingLot.getCapacity() - savedParkingLot.getCurrent()
-                , savedParkingLot.getPrice());
-        firebaseService.setPending(savedParkingLot.getId(), 0);
+                , savedParkingLot.getPrice(), savedParkingLot.getType());
+        firebaseService.setPending(savedParkingLot.getId(), 1);
         SimpleMailMessage registrationEmail = new SimpleMailMessage();
         registrationEmail.setTo(user.getEmail());
         registrationEmail.setSubject("Registration Success");
@@ -104,5 +110,34 @@ public class AdminController {
         registrationEmail.setFrom("noreply@domain.com");
         emailService.sendEmail(registrationEmail);
         return ResponseEntity.ok(new MessageResponse("Deny Success"));
+    }
+
+    @Secured("ROLE_ADMIN")
+    @GetMapping("/statistic")
+    public ResponseEntity<?> getStatistic() {
+        List<ParkingLot> parkingLotList = parkingLotRepository.findAll();
+        List<Invoice> invoiceList = invoiceRepository.findAll();
+        List<User> userList = userRepository.findAll();
+        int parkingCount = parkingLotList.size();
+        int userCount = 0;
+        for (User u : userList) {
+            if (u.getRoles().size() == 1 && u.getRoles().stream().anyMatch(r -> r.getName().equals(RoleName.ROLE_USER))) {
+                userCount++;
+            }
+        }
+        int updateParkingCount = parkingLotRepository.countAllByType(1);
+        int invoiceCount = invoiceList.size();
+        int revenue = 0;
+        int[] revenueData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        for (Invoice invoice : invoiceList) {
+            if (invoice.getStatus().equals(InvoiceStatus.STATUS_DONE)) {
+                revenue += invoice.getIncome();
+                LocalDateTime time = LocalDateTime.ofInstant(invoice.getEndDate(), ZoneId.systemDefault());
+                revenueData[time.getMonth().getValue() - 1] += invoice.getIncome();
+            }
+        }
+        StatisticResponse response = new StatisticResponse(parkingCount, userCount, invoiceCount, revenue,
+                updateParkingCount, revenueData);
+        return ResponseEntity.ok(response);
     }
 }

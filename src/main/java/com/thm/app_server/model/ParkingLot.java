@@ -47,11 +47,20 @@ public class ParkingLot extends DateAudit {
     @Column(name = "close_time")
     private String closeTime;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "image_id")
     private Image image;
 
-    public ParkingLot(String name, String address, double latitude, double longitude, int capacity, String openTime, String closeTime, int price) {
+    @JsonIgnore
+    @OneToOne(mappedBy = "property")
+    private User owner;
+
+    /*1: realtime update
+     * 0: not realtime */
+    private int type;
+
+    public ParkingLot(String name, String address, double latitude, double longitude, int capacity, String openTime,
+                      String closeTime, int price) {
         this.name = name;
         this.address = address;
         this.latitude = latitude;

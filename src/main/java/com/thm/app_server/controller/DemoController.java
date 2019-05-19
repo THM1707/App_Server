@@ -2,10 +2,7 @@ package com.thm.app_server.controller;
 
 import com.thm.app_server.service.FirebaseService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/demo")
@@ -32,7 +29,7 @@ public class DemoController {
     public ResponseEntity<?> add(@RequestParam Long id, @RequestParam String name, @RequestParam float star,
                                  @RequestParam double latitude, @RequestParam double longitude,
                                  @RequestParam int available, @RequestParam int price) {
-        firebaseService.addParkingLot(id, name, latitude, longitude, star, available, price);
+        firebaseService.addOrEditParkingLot(id, name, latitude, longitude, star, available, price, 1);
         return ResponseEntity.ok("OK");
     }
 
@@ -45,6 +42,12 @@ public class DemoController {
     @PostMapping("/notification")
     public ResponseEntity<?> sendNotification(@RequestParam String token, @RequestParam int value) {
         firebaseService.sendWalletChangeMessage(token, value, 0);
+        return ResponseEntity.ok("OK");
+    }
+
+    @PostMapping("/deletePending")
+    public ResponseEntity<?> changePending(@RequestParam Long id) {
+        firebaseService.deletePending(id);
         return ResponseEntity.ok("OK");
     }
 }

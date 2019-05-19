@@ -12,4 +12,5 @@ public interface ParkingLotRepository extends JpaRepository<ParkingLot, Long> {
     List<ParkingLot> findAll();
     Optional<ParkingLot> findById(Long id);
     List<ParkingLot> findByIdIn(List<Long> id);
+    int countAllByType(int type);
 }

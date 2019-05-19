@@ -64,7 +64,7 @@ public class User extends DateAudit {
             inverseJoinColumns = @JoinColumn(name = "parking_lot_id"))
     private Set<ParkingLot> favorites = new HashSet<>();
 
-    @OneToOne(fetch = FetchType.EAGER)
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinTable(name = "manager_property", joinColumns = @JoinColumn(name = "manager_id"), inverseJoinColumns = @JoinColumn(name = "parking_lot_id"))
     private ParkingLot property;
 

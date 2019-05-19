@@ -43,7 +43,8 @@ public class FirebaseService {
     }
 
     @Async
-    public void addParkingLot(Long id, String name, double latitude, double longitude, float star, int available, int price) {
+    public void addOrEditParkingLot(Long id, String name, double latitude, double longitude, float star, int available,
+                                    int price, int type) {
         final String uri = "https://gr-project-1707.firebaseio.com/parking/" + id + ".json";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -55,6 +56,7 @@ public class FirebaseService {
         content.put("star", star);
         content.put("available", available);
         content.put("price", price);
+        content.put("type", type);
         HttpEntity<String> entity = new HttpEntity<>(content.toString(), headers);
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.getMessageConverters()
@@ -73,6 +75,21 @@ public class FirebaseService {
         ResponseEntity result = restTemplate.exchange(uri, HttpMethod.PUT, entity, String.class);
         logger.info(result.toString());
     }
+
+    @Async
+    public void deleteParkingLot(Long id) {
+        final String uri = "https://gr-project-1707.firebaseio.com/parking/" + id + ".json";
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.delete(uri);
+    }
+
+    @Async
+    public void deletePending(Long id) {
+        final String uri = "https://gr-project-1707.firebaseio.com/pending/" + id + ".json";
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.delete(uri);
+    }
+
 
     @Async
     /*

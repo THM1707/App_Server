@@ -158,6 +158,7 @@ public class InvoiceController {
         parkingLot.setPending(parkingLot.getPending() - 1);
         parkingLotRepository.save(parkingLot);
         invoice.setStatus(InvoiceStatus.STATUS_ACTIVE);
+        invoice.setCreatedDate(Instant.now());
         invoiceRepository.save(invoice);
         firebaseService.setPending(parkingLot.getId(), parkingLot.getPending());
         return ResponseEntity.ok(new InvoiceResponse("OK", invoice, invoice.getParkingLot()));

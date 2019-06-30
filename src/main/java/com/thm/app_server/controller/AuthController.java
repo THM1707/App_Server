@@ -160,13 +160,13 @@ public class AuthController {
 
         user.setRoles(Collections.singleton(userRole));
 
-        String appUrl = "http://localhost:8080/api/auth";
+        String appUrl = "http://localhost:3000";
 
         SimpleMailMessage registrationEmail = new SimpleMailMessage();
         registrationEmail.setTo(user.getEmail());
         registrationEmail.setSubject("Registration Confirmation");
         registrationEmail.setText("To confirm your e-mail address, please click the link below:\n"
-                + appUrl + "/confirm?token=" + user.getConfirmationToken());
+                + appUrl + "/confirmation?token=" + user.getConfirmationToken());
         registrationEmail.setFrom("noreply@domain.com");
 
         emailService.sendEmail(registrationEmail);

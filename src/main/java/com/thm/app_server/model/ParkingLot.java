@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -27,19 +29,19 @@ public class ParkingLot extends DateAudit {
 
     private int capacity;
 
-    private int current = 0;
+    private int current;
 
-    private float star = 0f;
+    private float star;
 
-    private int pending = 0;
+    private int pending;
 
-    private int price = 0;
+    private int price;
 
     @JsonIgnore
-    private int sum = 0;
+    private int sum;
 
     @Column(name = "review_count", columnDefinition = "default '0'")
-    private int reviewCount = 0;
+    private int reviewCount;
 
     @Column(name = "open_time")
     private String openTime;
@@ -58,6 +60,17 @@ public class ParkingLot extends DateAudit {
     /*1: realtime update
      * 0: not realtime */
     private int type;
+
+    @JsonIgnore
+    @ManyToMany(mappedBy="favorites")
+    private Set<User> users = new HashSet<>();
+
+    @PreRemove
+    private void removeGroupsFromUsers() {
+        for (User u : users) {
+            u.getFavorites().remove(this);
+        }
+    }
 
     public ParkingLot(String name, String address, double latitude, double longitude, int capacity, String openTime,
                       String closeTime, int price) {

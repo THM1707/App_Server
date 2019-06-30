@@ -73,7 +73,7 @@ public class AdminController {
         firebaseService.addOrEditParkingLot(savedParkingLot.getId(), savedParkingLot.getName(), savedParkingLot.getLatitude(),
                 savedParkingLot.getLongitude(), savedParkingLot.getStar(), savedParkingLot.getCapacity() - savedParkingLot.getCurrent()
                 , savedParkingLot.getPrice(), savedParkingLot.getType());
-        firebaseService.setPending(savedParkingLot.getId(), 1);
+        firebaseService.setPending(savedParkingLot.getId(), 0);
         SimpleMailMessage registrationEmail = new SimpleMailMessage();
         registrationEmail.setTo(user.getEmail());
         registrationEmail.setSubject("Registration Success");

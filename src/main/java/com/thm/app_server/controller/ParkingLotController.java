@@ -115,8 +115,40 @@ public class ParkingLotController {
         parkingLot.setLongitude(request.getLongitude());
         parkingLot.setPrice(request.getPrice());
         ParkingLot saved = parkingLotRepository.save(parkingLot);
+        if (request.getImage() != null && !request.getImage().isEmpty() && !request.getImage().equals("")) {
+            Image image = parkingLot.getImage();
+            image.setData(request.getImage());
+            imageRepository.save(image);
+        }
         firebaseService.addOrEditParkingLot(id, parkingLot.getName(), parkingLot.getLatitude(),
                 parkingLot.getLongitude(), parkingLot.getStar(), parkingLot.getCapacity(),
+                parkingLot.getPrice(), parkingLot.getType());
+        return ResponseEntity.ok(new BasicResourceResponse("OK", saved));
+    }
+
+    @Secured("ROLE_MANAGER")
+    @PostMapping("/propertyEdit")
+    public ResponseEntity<?> edit(@RequestBody PropertyRequest request) {
+        UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userRepository.findById(principal.getId()).orElse(null);
+        assert user != null;
+        ParkingLot parkingLot = user.getProperty();
+        parkingLot.setName(request.getName());
+        parkingLot.setAddress(request.getAddress());
+        parkingLot.setOpenTime(request.getOpenTime());
+        parkingLot.setCloseTime(request.getCloseTime());
+        parkingLot.setCapacity(request.getCapacity());
+        parkingLot.setLatitude(request.getLatitude());
+        parkingLot.setLongitude(request.getLongitude());
+        parkingLot.setPrice(request.getPrice());
+        ParkingLot saved = parkingLotRepository.save(parkingLot);
+        if (request.getImage() != null && !request.getImage().isEmpty() && !request.getImage().equals("")) {
+            Image image = parkingLot.getImage();
+            image.setData(request.getImage());
+            imageRepository.save(image);
+        }
+        firebaseService.addOrEditParkingLot(saved.getId(), parkingLot.getName(), parkingLot.getLatitude(),
+                parkingLot.getLongitude(), parkingLot.getStar(), parkingLot.getCapacity() - parkingLot.getCurrent(),
                 parkingLot.getPrice(), parkingLot.getType());
         return ResponseEntity.ok(new BasicResourceResponse("OK", saved));
     }
